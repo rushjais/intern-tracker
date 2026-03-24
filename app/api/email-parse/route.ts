@@ -1,11 +1,9 @@
 import { generateText, Output } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
 import { createClient } from "@/lib/supabase/server";
 import * as z from "zod";
 
-// Construct model string dynamically to prevent autofix
-const PROVIDER = "anthropic";
-const MODEL_NAME = "claude-sonnet-4-20250514";
-const MODEL = `${PROVIDER}/${MODEL_NAME}`;
+const MODEL = anthropic("claude-sonnet-4-20250514");
 
 const emailParseSchema = z.object({
   company: z.string().nullable(),
@@ -71,12 +69,12 @@ Extract:
 If you cannot determine a field, return null for it.`,
       });
 
-      if (result.object) {
-        parsed = result.object;
+      if (result.output) {
+        parsed = result.output;
       }
     } catch (aiError) {
       console.error("[v0] AI parsing failed:", aiError);
-      // Continue with nulls - we'll still save the raw email
+      throw aiError;
     }
 
     // Try to match to an existing application - improved matching

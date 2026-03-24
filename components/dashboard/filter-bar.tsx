@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { STATUS_OPTIONS, ApplicationStatus } from "@/lib/types";
+import { STATUS_OPTIONS, PRIORITY_OPTIONS, ApplicationStatus, ApplicationPriority } from "@/lib/types";
 import { Search } from "lucide-react";
 
 interface FilterBarProps {
@@ -16,6 +16,8 @@ interface FilterBarProps {
   onSearchChange: (value: string) => void;
   statusFilter: ApplicationStatus | "All";
   onStatusFilterChange: (value: ApplicationStatus | "All") => void;
+  priorityFilter: ApplicationPriority | "All";
+  onPriorityFilterChange: (value: ApplicationPriority | "All") => void;
 }
 
 export function FilterBar({
@@ -23,6 +25,8 @@ export function FilterBar({
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
+  priorityFilter,
+  onPriorityFilterChange,
 }: FilterBarProps) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -49,6 +53,24 @@ export function FilterBar({
           {STATUS_OPTIONS.map((s) => (
             <SelectItem key={s} value={s}>
               {s}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
+        value={priorityFilter}
+        onValueChange={(v) =>
+          onPriorityFilterChange(v as ApplicationPriority | "All")
+        }
+      >
+        <SelectTrigger className="w-full sm:w-[160px] bg-card border-border">
+          <SelectValue placeholder="Filter by priority" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="All">All Priorities</SelectItem>
+          {PRIORITY_OPTIONS.map((p) => (
+            <SelectItem key={p} value={p}>
+              {p}
             </SelectItem>
           ))}
         </SelectContent>

@@ -251,68 +251,66 @@ export default async function Home() {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Coming Soon</h2>
             <p className="text-muted-foreground">
-              We're constantly improving InternTracker. Here's what's next.
+              We&apos;re constantly improving InternTracker. Here&apos;s what&apos;s next.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Feature 1 */}
             <div className="p-6 border rounded-lg bg-card">
-              <div className="text-4xl mb-3">✨</div>
-              <h3 className="font-semibold mb-2">AI Company Research</h3>
+              <div className="text-4xl mb-3">🔔</div>
+              <h3 className="font-semibold mb-2">Job Alerts</h3>
               <p className="text-sm text-muted-foreground">
-                One-click research on any company. Get funding data, tech stack, culture insights, and personalized fit scores.
+                Get notified the instant new internships are posted at your target companies. Never miss an opening again.
               </p>
             </div>
 
             {/* Feature 2 */}
             <div className="p-6 border rounded-lg bg-card">
-              <div className="text-4xl mb-3">🔔</div>
-              <h3 className="font-semibold mb-2">Job Alerts</h3>
+              <div className="text-4xl mb-3">🎯</div>
+              <h3 className="font-semibold mb-2">Startup Matcher</h3>
               <p className="text-sm text-muted-foreground">
-                Get notified the instant new internships are posted. Never miss an application deadline again.
+                Discover early-stage startups hiring your class year. Find high-upside opportunities beyond big tech.
               </p>
             </div>
 
             {/* Feature 3 */}
             <div className="p-6 border rounded-lg bg-card">
-              <div className="text-4xl mb-3">🎯</div>
-              <h3 className="font-semibold mb-2">Startup Matcher</h3>
+              <div className="text-4xl mb-3">📄</div>
+              <h3 className="font-semibold mb-2">Resume Optimizer</h3>
               <p className="text-sm text-muted-foreground">
-                Discover startups hiring your class year. Find hidden opportunities beyond big tech.
+                Auto-tailor your resume for each company. Highlight the right skills and projects for every application.
               </p>
             </div>
 
             {/* Feature 4 */}
             <div className="p-6 border rounded-lg bg-card">
-              <div className="text-4xl mb-3">📄</div>
-              <h3 className="font-semibold mb-2">Resume Optimizer</h3>
+              <div className="text-4xl mb-3">🤝</div>
+              <h3 className="font-semibold mb-2">Alumni Network</h3>
               <p className="text-sm text-muted-foreground">
-                Auto-tailor your resume for each company. Highlight the right skills for every application.
+                Find and connect with alumni at your target companies. Get warm referrals and insider advice.
               </p>
             </div>
 
             {/* Feature 5 */}
             <div className="p-6 border rounded-lg bg-card">
-              <div className="text-4xl mb-3">🤝</div>
-              <h3 className="font-semibold mb-2">Alumni Network</h3>
+              <div className="text-4xl mb-3">📧</div>
+              <h3 className="font-semibold mb-2">Email Auto-Sync</h3>
               <p className="text-sm text-muted-foreground">
-                Find and connect with alumni at your target companies. Get referrals and insider advice.
+                Automatically detect and import application updates from your inbox. Status changes update in real time.
               </p>
             </div>
 
             {/* Feature 6 */}
             <div className="p-6 border rounded-lg bg-card">
               <div className="text-4xl mb-3">📊</div>
-              <h3 className="font-semibold mb-2">Advanced Analytics</h3>
+              <h3 className="font-semibold mb-2">Predictive Analytics</h3>
               <p className="text-sm text-muted-foreground">
-                ML-powered predictions for response times, offer probability, and optimal application timing.
+                ML-powered offer probability scores, optimal apply timing, and response rate benchmarks by industry.
               </p>
             </div>
           </div>
         </section>
-        ```
-
 
         {/* Footer */}
         <footer className="border-t border-border">

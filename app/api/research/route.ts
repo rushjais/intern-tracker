@@ -294,52 +294,11 @@ export async function POST(req: Request) {
       }
     }
 
-    // Step 1: Company research via AI (with rich fallback)
+    // Build personalized context from user profile (needed by both AI calls)
     const knownData = getKnownCompanyData(company);
-    let researchData = knownData || generateGenericFallback(company);
+    const researchFallback = knownData || generateGenericFallback(company);
+    const fitFallback = generateFitFallback(company, role || "Software Engineer Intern");
 
-    try {
-      const researchResult = await generateText({
-        model: AI_MODEL,
-        output: Output.object({ schema: companyResearchSchema }),
-        prompt: `Research the company "${company}" and provide structured data.
-Return accurate, current information. If you cannot determine a field, return null.
-
-Fields needed:
-- description: 1-2 sentence company description
-- funding_stage: e.g. "Series B", "Public", "Seed", "Bootstrapped"
-- funding_amount: Latest round or market cap, e.g. "$50M Series B" or "Public (Market cap $2T)"
-- company_size: Number of employees, e.g. "1,000-5,000" or "~500"
-- tech_stack: Array of technologies they use (languages, frameworks, tools)
-- recent_news: Array of 2-3 recent notable news items (last 3 months). Each should be one sentence.
-- culture_notes: Brief notes on work culture, values, perks, work-life balance (2-3 sentences)`,
-      });
-
-      if (researchResult.output) {
-        // Merge AI results, preferring AI data over fallback for non-null fields
-        const ai = researchResult.output;
-        researchData = {
-          description: ai.description || researchData.description,
-          funding_stage: ai.funding_stage || researchData.funding_stage,
-          funding_amount: ai.funding_amount || researchData.funding_amount,
-          company_size: ai.company_size || researchData.company_size,
-          tech_stack: (ai.tech_stack && ai.tech_stack.length > 0) ? ai.tech_stack : researchData.tech_stack,
-          recent_news: (ai.recent_news && ai.recent_news.length > 0) ? ai.recent_news : researchData.recent_news,
-          culture_notes: ai.culture_notes || researchData.culture_notes,
-        };
-      }
-    } catch (aiError) {
-      console.error("[v0] Company research AI call failed, using fallback:", aiError);
-      if (!knownData) {
-        warnings.push("AI research unavailable - showing estimated data");
-      }
-      // researchData already contains the fallback
-    }
-
-    // Step 2: Fit analysis via AI (with personalized data)
-    let fitData = generateFitFallback(company, role || "Software Engineer Intern");
-
-    // Build personalized context from user profile
     const hasProfile = userProfile && (
       userProfile.programming_languages?.length > 0 ||
       userProfile.frameworks?.length > 0 ||
@@ -362,49 +321,54 @@ Fields needed:
       userContext = parts.join("\n");
     }
 
-    try {
-      const fitPrompt = hasProfile
-        ? `Analyze how well THIS SPECIFIC candidate fits the role of "${role || "Software Engineer Intern"}" at "${company}".
+    const fitPrompt = hasProfile
+      ? `Analyze how well THIS SPECIFIC candidate fits the role of "${role || "Software Engineer Intern"}" at "${company}".\n\nCANDIDATE PROFILE:\n${userContext}\n\nINSTRUCTIONS:\nCompare the candidate's ACTUAL skills, experience, and background against the typical requirements for "${role || "Software Engineer Intern"}" at ${company}. Be specific:\n- fit_score: 0-100 based on how well THEIR skills match. Be honest - if they have 4/5 required skills, score accordingly.\n- fit_recommendation: "Strong fit", "Good fit", "Medium fit", or "Weak fit" with a sentence explaining WHY based on their specific profile.\n- fit_strengths: 3-4 specific things from THEIR profile that match this role (reference their actual languages, projects, coursework by name).\n- fit_gaps: 2-3 specific skills or experiences they're MISSING for this role (be concrete - e.g. "No experience with Go which ${company} uses heavily" rather than vague advice).\n\nBe realistic, specific, and reference their actual skills by name.`
+      : `Analyze how well a candidate would fit the role of "${role || "Software Engineer Intern"}" at "${company}".\n\nConsider the typical requirements for this role at this company and provide:\n- fit_score: A number 0-100 representing overall fit for a typical intern/junior candidate\n- fit_recommendation: "Strong fit", "Good fit", "Medium fit", or "Weak fit" with a one-sentence explanation\n- fit_strengths: Array of 3-4 strengths or advantages of applying here\n- fit_gaps: Array of 2-3 potential skill gaps or challenges to prepare for\n\nNote: The candidate has not filled in their skills profile yet. Provide general guidance. Mention that filling in their profile in Settings would give more personalized results.`;
 
-CANDIDATE PROFILE:
-${userContext}
-
-INSTRUCTIONS:
-Compare the candidate's ACTUAL skills, experience, and background against the typical requirements for "${role || "Software Engineer Intern"}" at ${company}. Be specific:
-- fit_score: 0-100 based on how well THEIR skills match. Be honest - if they have 4/5 required skills, score accordingly.
-- fit_recommendation: "Strong fit", "Good fit", "Medium fit", or "Weak fit" with a sentence explaining WHY based on their specific profile.
-- fit_strengths: 3-4 specific things from THEIR profile that match this role (reference their actual languages, projects, coursework by name).
-- fit_gaps: 2-3 specific skills or experiences they're MISSING for this role (be concrete - e.g. "No experience with Go which ${company} uses heavily" rather than vague advice).
-
-Be realistic, specific, and reference their actual skills by name.`
-        : `Analyze how well a candidate would fit the role of "${role || "Software Engineer Intern"}" at "${company}".
-
-Consider the typical requirements for this role at this company and provide:
-- fit_score: A number 0-100 representing overall fit for a typical intern/junior candidate
-- fit_recommendation: "Strong fit", "Good fit", "Medium fit", or "Weak fit" with a one-sentence explanation
-- fit_strengths: Array of 3-4 strengths or advantages of applying here
-- fit_gaps: Array of 2-3 potential skill gaps or challenges to prepare for
-
-Note: The candidate has not filled in their skills profile yet. Provide general guidance. Mention that filling in their profile in Settings would give more personalized results.`;
-
-      const fitResult = await generateText({
+    // Run both AI calls in parallel — cuts latency ~50%
+    const [researchResult, fitResult] = await Promise.allSettled([
+      generateText({
+        model: AI_MODEL,
+        output: Output.object({ schema: companyResearchSchema }),
+        prompt: `Research the company "${company}" and provide structured data.\nReturn accurate, current information. If you cannot determine a field, return null.\n\nFields needed:\n- description: 1-2 sentence company description\n- funding_stage: e.g. "Series B", "Public", "Seed", "Bootstrapped"\n- funding_amount: Latest round or market cap, e.g. "$50M Series B" or "Public (Market cap $2T)"\n- company_size: Number of employees, e.g. "1,000-5,000" or "~500"\n- tech_stack: Array of technologies they use (languages, frameworks, tools)\n- recent_news: Array of 2-3 recent notable news items (last 3 months). Each should be one sentence.\n- culture_notes: Brief notes on work culture, values, perks, work-life balance (2-3 sentences)`,
+      }),
+      generateText({
         model: AI_MODEL,
         output: Output.object({ schema: fitAnalysisSchema }),
         prompt: fitPrompt,
-      });
+      }),
+    ]);
 
-      if (fitResult.output) {
-        const ai = fitResult.output;
-        fitData = {
-          fit_score: ai.fit_score ?? fitData.fit_score,
-          fit_recommendation: ai.fit_recommendation ?? fitData.fit_recommendation,
-          fit_strengths: (ai.fit_strengths && ai.fit_strengths.length > 0) ? ai.fit_strengths : fitData.fit_strengths,
-          fit_gaps: (ai.fit_gaps && ai.fit_gaps.length > 0) ? ai.fit_gaps : fitData.fit_gaps,
-        };
-      }
-    } catch (aiError) {
-      console.error("[v0] Fit analysis AI call failed, using fallback:", aiError);
-      // fitData already contains the fallback
+    // Merge company research result with fallback
+    let researchData = researchFallback;
+    if (researchResult.status === "fulfilled" && researchResult.value.output) {
+      const ai = researchResult.value.output;
+      researchData = {
+        description: ai.description || researchFallback.description,
+        funding_stage: ai.funding_stage || researchFallback.funding_stage,
+        funding_amount: ai.funding_amount || researchFallback.funding_amount,
+        company_size: ai.company_size || researchFallback.company_size,
+        tech_stack: (ai.tech_stack && ai.tech_stack.length > 0) ? ai.tech_stack : researchFallback.tech_stack,
+        recent_news: (ai.recent_news && ai.recent_news.length > 0) ? ai.recent_news : researchFallback.recent_news,
+        culture_notes: ai.culture_notes || researchFallback.culture_notes,
+      };
+    } else if (researchResult.status === "rejected") {
+      console.error("[v0] Company research AI call failed, using fallback:", researchResult.reason);
+      if (!knownData) warnings.push("AI research unavailable - showing estimated data");
+    }
+
+    // Merge fit analysis result with fallback
+    let fitData = fitFallback;
+    if (fitResult.status === "fulfilled" && fitResult.value.output) {
+      const ai = fitResult.value.output;
+      fitData = {
+        fit_score: ai.fit_score ?? fitFallback.fit_score,
+        fit_recommendation: ai.fit_recommendation ?? fitFallback.fit_recommendation,
+        fit_strengths: (ai.fit_strengths && ai.fit_strengths.length > 0) ? ai.fit_strengths : fitFallback.fit_strengths,
+        fit_gaps: (ai.fit_gaps && ai.fit_gaps.length > 0) ? ai.fit_gaps : fitFallback.fit_gaps,
+      };
+    } else if (fitResult.status === "rejected") {
+      console.error("[v0] Fit analysis AI call failed, using fallback:", fitResult.reason);
     }
 
     // Combine research + fit data

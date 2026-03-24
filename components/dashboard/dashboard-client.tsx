@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import useSWR from "swr";
 import { createClient } from "@/lib/supabase/client";
-import { Application, ApplicationStatus } from "@/lib/types";
+import { Application, ApplicationStatus, ApplicationPriority } from "@/lib/types";
 import { DashboardHeader } from "./dashboard-header";
 import { StatsCards } from "./stats-cards";
 import { FilterBar } from "./filter-bar";
@@ -42,9 +42,8 @@ export function DashboardClient({
 
   const [formOpen, setFormOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "All">(
-    "All"
-  );
+  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "All">("All");
+  const [priorityFilter, setPriorityFilter] = useState<ApplicationPriority | "All">("All");
 
   const filtered = useMemo(() => {
     return applications.filter((app) => {
@@ -56,9 +55,12 @@ export function DashboardClient({
       const matchesStatus =
         statusFilter === "All" || app.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      const matchesPriority =
+        priorityFilter === "All" || app.priority === priorityFilter;
+
+      return matchesSearch && matchesStatus && matchesPriority;
     });
-  }, [applications, search, statusFilter]);
+  }, [applications, search, statusFilter, priorityFilter]);
 
   return (
     <div className="min-h-svh bg-background">
@@ -79,6 +81,8 @@ export function DashboardClient({
             onSearchChange={setSearch}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
+            priorityFilter={priorityFilter}
+            onPriorityFilterChange={setPriorityFilter}
           />
 
           <ApplicationsTable
